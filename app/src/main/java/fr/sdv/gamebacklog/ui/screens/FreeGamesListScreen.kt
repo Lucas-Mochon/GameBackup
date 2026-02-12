@@ -11,124 +11,124 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import fr.sdv.gamebacklog.data.remote.FreeGameResponse
 import fr.sdv.gamebacklog.viewmodel.FreeGamesListViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreeGamesListScreen(
-    viewModel: FreeGamesListViewModel = FreeGamesListViewModel(),
     onGameClick: (FreeGameResponse) -> Unit,
-    onNavigateBack: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
+    val viewModel: FreeGamesListViewModel = viewModel()
+
     val games by viewModel.games.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val hasNextPage by viewModel.hasNextPage.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "🎮 Jeux Gratuits",
-                        fontSize = (18.sp * fontScaleFactor),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Retour"
-                        }
-                    ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.loadGames() },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Rafraîchir les jeux"
-                        }
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                    }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null &&
+                    lastVisibleIndex >= games.size - 3 &&
+                    hasNextPage &&
+                    !isLoading) {
+                    viewModel.loadNextPage()
                 }
-            )
+            }
+    }
+
+    when {
+        isLoading && games.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when {
-                isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+
+        error != null && games.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = error ?: "Erreur inconnue",
+                    fontSize = (14.sp * fontScaleFactor),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        games.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Aucun jeu trouvé",
+                    fontSize = (16.sp * fontScaleFactor)
+                )
+            }
+        }
+
+        else -> {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                state = listState
+            ) {
+                items(games, key = { it.id }) { game ->
+                    FreeGameCard(
+                        game = game,
+                        onClick = { onGameClick(game) },
+                        fontScaleFactor = fontScaleFactor
                     )
                 }
-                error != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${error ?: "Erreur inconnue"}",
-                            fontSize = (14.sp * fontScaleFactor),
-                            color = MaterialTheme.colorScheme.error
-                        )
+
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
                 }
-                games.isEmpty() -> {
-                    Text(
-                        text = "Aucun jeu trouvé",
-                        modifier = Modifier.align(Alignment.Center),
-                        fontSize = (16.sp * fontScaleFactor)
-                    )
-                }
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(games, key = { it.id }) { game ->
-                            FreeGameCard(
-                                game = game,
-                                onClick = { onGameClick(game) },
-                                fontScaleFactor = fontScaleFactor
+
+                if (!hasNextPage && games.isNotEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Fin de la liste",
+                                fontSize = (12.sp * fontScaleFactor),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -154,22 +154,17 @@ fun FreeGameCard(
             .clickable(onClick = onClick)
             .padding(8.dp)
     ) {
-        // Game thumbnail
         AsyncImage(
             model = game.thumbnail,
-            contentDescription = "Image de ${game.title}",
+            contentDescription = game.title,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .semantics { contentDescription = "Couverture: ${game.title}" },
+                .clip(RoundedCornerShape(8.dp)),
             contentScale = ContentScale.Crop
         )
 
-        // Game info
-        Column(
-            modifier = Modifier.padding(8.dp)
-        ) {
+        Column(modifier = Modifier.padding(8.dp)) {
             Text(
                 text = game.title,
                 fontSize = (14.sp * fontScaleFactor),
@@ -179,20 +174,11 @@ fun FreeGameCard(
             )
 
             Text(
-                text = " ${game.platform} • ${game.genre}",
+                text = "${game.platform} • ${game.genre}",
                 fontSize = (12.sp * fontScaleFactor),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-
-            Text(
-                text = game.shortDescription,
-                fontSize = (11.sp * fontScaleFactor),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp)
             )
 
             Text(
@@ -213,4 +199,3 @@ fun FreeGameCard(
         }
     }
 }
-

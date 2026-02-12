@@ -25,17 +25,18 @@ import androidx.navigation.compose.rememberNavController
 import fr.sdv.gamebacklog.data.model.GameStatus
 import fr.sdv.gamebacklog.data.repository.GameRepository
 import fr.sdv.gamebacklog.ui.screens.AddEditGameScreen
+import fr.sdv.gamebacklog.ui.screens.FreeGameDetailScreen
 import fr.sdv.gamebacklog.ui.screens.GameListScreen
 import fr.sdv.gamebacklog.ui.screens.GameStatusScreen
 import fr.sdv.gamebacklog.ui.screens.SettingsScreen
 import fr.sdv.gamebacklog.ui.screens.FreeGamesListScreen
-import fr.sdv.gamebacklog.ui.screens.FreeGameDetailScreen
 import fr.sdv.gamebacklog.utils.AccessibilityPreferences
 import fr.sdv.gamebacklog.utils.AccessibilityPreferencesManager
 import fr.sdv.gamebacklog.viewmodel.AddEditGameViewModel
 import fr.sdv.gamebacklog.viewmodel.AddEditGameViewModelFactory
 import fr.sdv.gamebacklog.viewmodel.GameListViewModel
 import fr.sdv.gamebacklog.viewmodel.GameListViewModelFactory
+import fr.sdv.gamebacklog.viewmodel.FreeGameDetailViewModel
 
 data class BottomNavItem(
     val route: String,
@@ -59,14 +60,14 @@ fun GameBacklogNavigation(
         BottomNavItem(GameBacklogScreen.FreeGamesList.route, "Découvrir", Icons.Default.Home),
         BottomNavItem(GameBacklogScreen.GameList.route, "À faire", Icons.Default.Favorite),
         BottomNavItem(GameBacklogScreen.InProgress.route, "En cours", Icons.Default.CheckCircle),
-        BottomNavItem(GameBacklogScreen.Done.route, "Terminé", Icons.Default.Settings),
-        BottomNavItem(GameBacklogScreen.Settings.route, "Paramètres", Icons.Default.Settings)
+        BottomNavItem(GameBacklogScreen.Done.route, "Terminé", Icons.Default.CheckCircle),
+        BottomNavItem(GameBacklogScreen.Settings.route, "⚙Paramètres", Icons.Default.Settings)
     )
 
     Scaffold(
         bottomBar = {
             NavigationBar {
-                bottomNavItems.forEachIndexed { index, item ->
+                bottomNavItems.forEachIndexed { _, item ->
                     NavigationBarItem(
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
@@ -99,6 +100,24 @@ fun GameBacklogNavigation(
                             GameBacklogScreen.FreeGameDetail.createRoute(freeGame.id)
                         )
                     },
+                    fontScaleFactor = fontScaleFactor
+                )
+            }
+
+
+            composable(GameBacklogScreen.FreeGameDetail.route) { backStackEntry ->
+                val gameId = backStackEntry.arguments?.getString("gameId")?.toIntOrNull() ?: 0
+                val viewModel: FreeGameDetailViewModel = viewModel()
+
+                FreeGameDetailScreen(
+                    gameId = gameId,
+                    viewModel = viewModel,
+                    repository  = repository,
+                    onGameAdded = {
+                        navController.navigate(GameBacklogScreen.GameList.route) {
+                            popUpTo(GameBacklogScreen.FreeGamesList.route) { inclusive = false }
+                        }
+                    },
                     onNavigateBack = {
                         navController.navigateUp()
                     },
@@ -120,7 +139,9 @@ fun GameBacklogNavigation(
                         navController.navigate("add_edit_game/null")
                     },
                     onFreeGamesClick = {
-                        navController.navigate(GameBacklogScreen.FreeGamesList.route)
+                        navController.navigate(GameBacklogScreen.FreeGamesList.route) {
+                            popUpTo(GameBacklogScreen.GameList.route) { inclusive = true }
+                        }
                     },
                     fontScaleFactor = fontScaleFactor
                 )
@@ -160,7 +181,6 @@ fun GameBacklogNavigation(
                 )
             }
 
-            // Paramètres
             composable(GameBacklogScreen.Settings.route) {
                 SettingsScreen(
                     accessibilityManager = accessibilityManager,
@@ -175,7 +195,11 @@ fun GameBacklogNavigation(
 
             composable(GameBacklogScreen.AddEditGame.route) { backStackEntry ->
                 val gameIdStr = backStackEntry.arguments?.getString("gameId")
-                val gameId = if (gameIdStr != "null") gameIdStr?.toIntOrNull() else null
+                val gameId = if (gameIdStr != "null" && gameIdStr != null) {
+                    gameIdStr.toIntOrNull()
+                } else {
+                    null
+                }
 
                 val viewModel: AddEditGameViewModel = viewModel(
                     factory = AddEditGameViewModelFactory(repository)
@@ -189,23 +213,6 @@ fun GameBacklogNavigation(
                     viewModel = viewModel,
                     onSave = {
                         navController.navigateUp()
-                    },
-                    onNavigateBack = {
-                        navController.navigateUp()
-                    },
-                    fontScaleFactor = fontScaleFactor
-                )
-            }
-
-            composable(GameBacklogScreen.FreeGameDetail.route) { backStackEntry ->
-                val gameId = backStackEntry.arguments?.getString("gameId")?.toIntOrNull() ?: 0
-                FreeGameDetailScreen(
-                    gameId = gameId,
-                    repository = repository,
-                    onGameAdded = {
-                        navController.navigate(GameBacklogScreen.GameList.route) {
-                            popUpTo(GameBacklogScreen.FreeGamesList.route) { inclusive = false }
-                        }
                     },
                     onNavigateBack = {
                         navController.navigateUp()

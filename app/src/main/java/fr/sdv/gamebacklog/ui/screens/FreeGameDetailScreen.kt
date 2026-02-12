@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,53 +33,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import coil.compose.AsyncImage
 import fr.sdv.gamebacklog.data.model.Game
 import fr.sdv.gamebacklog.data.model.GameStatus
 import fr.sdv.gamebacklog.data.repository.GameRepository
-import fr.sdv.gamebacklog.data.repository.FreeGamesRepository
 import fr.sdv.gamebacklog.ui.components.AccessibleButton
 import fr.sdv.gamebacklog.ui.components.AccessibleSlider
 import fr.sdv.gamebacklog.utils.ImageDownloadUtils
+import fr.sdv.gamebacklog.viewmodel.FreeGameDetailViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreeGameDetailScreen(
     gameId: Int,
+    viewModel: FreeGameDetailViewModel = FreeGameDetailViewModel(),
     repository: GameRepository,
     onGameAdded: () -> Unit,
     onNavigateBack: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
     val context = LocalContext.current
-    val freeGamesRepository = remember { FreeGamesRepository() }
     val scope = rememberCoroutineScope()
 
-    var gameDetail by remember { mutableStateOf<fr.sdv.gamebacklog.data.remote.FreeGameDetailResponse?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var isAddingGame by remember { mutableStateOf(false) }
+    val gameDetail by viewModel.gameDetail.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
+    // 🔹 STATES UI (comme avant)
     var selectedStatus by remember { mutableStateOf(GameStatus.TO_DO) }
     var rating by remember { mutableStateOf(0) }
+    var isAddingGame by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(gameId) {
-        scope.launch {
-            try {
-                gameDetail = freeGamesRepository.getGameById(gameId)
-                isLoading = false
-            } catch (e: Exception) {
-                error = "Erreur: ${e.message}"
-                isLoading = false
-            }
-        }
+        viewModel.loadGameDetail(gameId)
     }
 
     Scaffold(
@@ -85,18 +78,14 @@ fun FreeGameDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ajouter un jeu",
-                        fontSize = (18.sp * fontScaleFactor)
+                        text = "📖 Détail du jeu",
+                        fontSize = (18.sp * fontScaleFactor),
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Retour"
-                        }
-                    ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null)
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
                     }
                 }
             )
@@ -109,24 +98,23 @@ fun FreeGameDetailScreen(
         ) {
             when {
                 isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
-                error != null -> {
+
+                error != null || localError != null -> {
                     Text(
-                        text = error ?: "Erreur",
+                        text = "${error ?: localError ?: "Erreur"}",
                         modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+
                 gameDetail != null -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
                             .padding(16.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         AsyncImage(
                             model = gameDetail!!.thumbnail,
@@ -141,58 +129,40 @@ fun FreeGameDetailScreen(
                         Text(
                             text = gameDetail!!.title,
                             fontSize = (20.sp * fontScaleFactor),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp)
                         )
 
                         Text(
-                            text = "Plateforme: ${gameDetail!!.platform}",
-                            fontSize = (14.sp * fontScaleFactor)
-                        )
-                        Text(
-                            text = "Genre: ${gameDetail!!.genre}",
-                            fontSize = (14.sp * fontScaleFactor)
-                        )
-                        Text(
-                            text = "Développeur: ${gameDetail!!.developer}",
-                            fontSize = (14.sp * fontScaleFactor)
-                        )
-                        Text(
-                            text = "Éditeur: ${gameDetail!!.publisher}",
-                            fontSize = (14.sp * fontScaleFactor)
-                        )
-                        Text(
-                            text = "Date de sortie: ${gameDetail!!.releaseDate}",
-                            fontSize = (14.sp * fontScaleFactor)
+                            text = "${gameDetail!!.platform} • ${gameDetail!!.genre}",
+                            fontSize = (12.sp * fontScaleFactor),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Text(
-                            text = "Description",
-                            fontSize = (16.sp * fontScaleFactor),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = gameDetail!!.description,
-                            fontSize = (13.sp * fontScaleFactor)
+                            text = "Statut : ${selectedStatus.getLabel()}",
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp)
                         )
 
-                        Text(
-                            text = "Statut: ${selectedStatus.getLabel()}",
-                            fontSize = (14.sp * fontScaleFactor),
-                            fontWeight = FontWeight.Bold
-                        )
-                        GameStatus.values().forEach { status ->
-                            AccessibleButton(
-                                text = status.getLabel(),
-                                onClick = { selectedStatus = status },
-                                modifier = Modifier.fillMaxWidth(),
-                                fontScaleFactor = fontScaleFactor
-                            )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            GameStatus.values().forEach { status ->
+                                AccessibleButton(
+                                    text = status.getLabel(),
+                                    onClick = { selectedStatus = status },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontScaleFactor = fontScaleFactor
+                                )
+                            }
                         }
 
                         AccessibleSlider(
                             value = rating.toFloat(),
                             onValueChange = { rating = it.toInt() },
-                            label = "Note: $rating/10",
+                            label = "Note : $rating / 10",
                             valueRange = 0f..10f,
                             steps = 9,
                             fontScaleFactor = fontScaleFactor
@@ -200,15 +170,20 @@ fun FreeGameDetailScreen(
 
                         AccessibleButton(
                             text = if (isAddingGame) "Ajout en cours..." else "Ajouter à ma liste",
+                            enabled = !isAddingGame,
+                            modifier = Modifier.fillMaxWidth(),
+                            fontScaleFactor = fontScaleFactor,
                             onClick = {
                                 scope.launch {
                                     isAddingGame = true
+                                    localError = null
                                     try {
-                                        val localImagePath = ImageDownloadUtils.downloadAndSaveImage(
-                                            context,
-                                            gameDetail!!.thumbnail,
-                                            "game_${gameDetail!!.id}.jpg"
-                                        )
+                                        val localImagePath =
+                                            ImageDownloadUtils.downloadAndSaveImage(
+                                                context,
+                                                gameDetail!!.thumbnail,
+                                                "game_${gameDetail!!.id}.jpg"
+                                            )
 
                                         val newGame = Game(
                                             title = gameDetail!!.title,
@@ -219,21 +194,17 @@ fun FreeGameDetailScreen(
                                             releaseDate = gameDetail!!.releaseDate,
                                             imageUri = localImagePath ?: ""
                                         )
+
                                         repository.addGame(newGame)
-                                        isAddingGame = false
                                         onGameAdded()
                                     } catch (e: Exception) {
-                                        error = "Erreur lors de l'ajout: ${e.message}"
+                                        localError = "Erreur ajout : ${e.message}"
+                                    } finally {
                                         isAddingGame = false
                                     }
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            fontScaleFactor = fontScaleFactor,
-                            enabled = !isAddingGame
+                            }
                         )
-
-                        Text(text = "", modifier = Modifier.padding(bottom = 24.dp))
                     }
                 }
             }

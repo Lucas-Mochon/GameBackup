@@ -1,5 +1,6 @@
 package fr.sdv.gamebacklog.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.sdv.gamebacklog.data.remote.FreeGameResponse
@@ -21,69 +22,81 @@ class FreeGamesListViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _hasNextPage = MutableStateFlow(true)
+    val hasNextPage: StateFlow<Boolean> = _hasNextPage
+
+    private val pageSize = 20
+    private var allGamesCache: List<FreeGameResponse> = emptyList()
+    private var isLoadingMore = false
+
     init {
         loadGames()
     }
 
     fun loadGames() {
+        if (_isLoading.value) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            _hasNextPage.value = true
+            _games.value = emptyList()
+            isLoadingMore = false
+
             try {
-                val gamesList = repository.getAllGames()
-                _games.value = gamesList
+                allGamesCache = repository.getAllGames()
+
+                val firstPage = allGamesCache.take(pageSize)
+
+                _games.value = firstPage
+                _hasNextPage.value = allGamesCache.size > firstPage.size
+
             } catch (e: Exception) {
-                _error.value = "Erreur lors du chargement des jeux: ${e.message}"
-                e.printStackTrace()
+                Log.e("FreeGamesVM", "ERREUR loadGames: ${e.message}", e)
+                _error.value = e.message
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun filterByPlatform(platform: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                val gamesList = repository.getGamesByPlatform(platform)
-                _games.value = gamesList
-            } catch (e: Exception) {
-                _error.value = "Erreur: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
+    fun loadNextPage() {
+        if (isLoadingMore) {
+            return
         }
-    }
 
-    fun filterByCategory(category: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                val gamesList = repository.getGamesByCategory(category)
-                _games.value = gamesList
-            } catch (e: Exception) {
-                _error.value = "Erreur: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
+        if (!_hasNextPage.value) {
+            return
         }
-    }
 
-    fun sortBy(sortBy: String) {
+        isLoadingMore = true
+        _isLoading.value = true
+
         viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
             try {
-                val gamesList = repository.getGamesSorted(sortBy)
-                _games.value = gamesList
+                val currentSize = _games.value.size
+
+                val nextPage = allGamesCache
+                    .drop(currentSize)
+                    .take(pageSize)
+
+                if (nextPage.isNotEmpty()) {
+                    val newList = _games.value + nextPage
+                    _games.value = newList
+                    _hasNextPage.value = allGamesCache.size > newList.size
+
+                } else {
+                    _hasNextPage.value = false
+                }
             } catch (e: Exception) {
-                _error.value = "Erreur: ${e.message}"
+                Log.e("FreeGamesVM", "ERREUR loadNextPage: ${e.message}", e)
+                _error.value = e.message
             } finally {
                 _isLoading.value = false
+                isLoadingMore = false
             }
         }
     }
 }
-

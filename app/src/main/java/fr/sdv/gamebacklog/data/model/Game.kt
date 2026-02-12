@@ -10,9 +10,9 @@ data class Game(
     val title: String,
     val platform: String,
     val status: GameStatus = GameStatus.TO_DO,
-    val personalRating: Int = 0, // 0-10
+    val personalRating: Int = 0,
     val description: String = "",
-    val imageUri: String = "", // Path to image file
+    val imageUri: String = "",
     val releaseDate: String = "",
     val hoursPlayed: Int = 0
 )

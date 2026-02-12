@@ -8,6 +8,12 @@ class FreeGamesRepository {
 
     private val apiService = FreeToGameClient.apiService
 
+    private var cachedGames: List<FreeGameResponse>? = null
+    private var cachedPlatform: String? = null
+    private var cachedCategory: String? = null
+    private var cachedSort: String? = null
+
+
     suspend fun getAllGames(): List<FreeGameResponse> {
         return try {
             apiService.getAllGames()
@@ -44,19 +50,6 @@ class FreeGamesRepository {
         }
     }
 
-    suspend fun getGamesFiltered(
-        platform: String? = null,
-        category: String? = null,
-        sortBy: String? = null
-    ): List<FreeGameResponse> {
-        return try {
-            apiService.getGamesFiltered(platform, category, sortBy)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
-    }
-
     suspend fun getGameById(gameId: Int): FreeGameDetailResponse? {
         return try {
             apiService.getGameById(gameId)
@@ -66,4 +59,3 @@ class FreeGamesRepository {
         }
     }
 }
-
