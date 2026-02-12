@@ -3,7 +3,6 @@ package fr.sdv.gamebacklog.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,7 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,27 +45,28 @@ import fr.sdv.gamebacklog.ui.components.AccessibleButton
 import fr.sdv.gamebacklog.ui.components.AccessibleSlider
 import fr.sdv.gamebacklog.ui.components.GameImage
 import fr.sdv.gamebacklog.utils.ImageUtils
+import fr.sdv.gamebacklog.viewmodel.AddEditGameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditGameScreen(
-    game: Game? = null,
-    onSave: (Game) -> Unit,
+    viewModel: AddEditGameViewModel,
+    onSave: () -> Unit,
     onNavigateBack: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
     val context = LocalContext.current
+    val currentGame by viewModel.currentGame.collectAsState()
 
-    var title by remember { mutableStateOf(game?.title ?: "") }
-    var platform by remember { mutableStateOf(game?.platform ?: "") }
-    var description by remember { mutableStateOf(game?.description ?: "") }
-    var releaseDate by remember { mutableStateOf(game?.releaseDate ?: "") }
-    var hoursPlayed by remember { mutableIntStateOf(game?.hoursPlayed ?: 0) }
-    var rating by remember { mutableIntStateOf(game?.personalRating ?: 0) }
-    var status by remember { mutableStateOf(game?.status ?: GameStatus.TO_DO) }
-    var imageUri by remember { mutableStateOf(game?.imageUri ?: "") }
+    var title by remember(currentGame) { mutableStateOf(currentGame?.title ?: "") }
+    var platform by remember(currentGame) { mutableStateOf(currentGame?.platform ?: "") }
+    var description by remember(currentGame) { mutableStateOf(currentGame?.description ?: "") }
+    var releaseDate by remember(currentGame) { mutableStateOf(currentGame?.releaseDate ?: "") }
+    var hoursPlayed by remember(currentGame) { mutableIntStateOf(currentGame?.hoursPlayed ?: 0) }
+    var rating by remember(currentGame) { mutableIntStateOf(currentGame?.personalRating ?: 0) }
+    var status by remember(currentGame) { mutableStateOf(currentGame?.status ?: GameStatus.TO_DO) }
+    var imageUri by remember(currentGame) { mutableStateOf(currentGame?.imageUri ?: "") }
 
-    // Image picker launcher
     val imageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -82,8 +83,9 @@ fun AddEditGameScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (game == null) "Ajouter un jeu" else "Modifier le jeu",
-                        fontSize = (18.sp * fontScaleFactor)
+                        text = if (currentGame == null) "Ajouter un jeu" else "Modifier le jeu",
+                        fontSize = (18.sp * fontScaleFactor),
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -106,7 +108,6 @@ fun AddEditGameScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Game image display
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,7 +122,6 @@ fun AddEditGameScreen(
                 )
             }
 
-            // Image picker button
             AccessibleButton(
                 text = "📷 Choisir une image",
                 onClick = { imageLauncher.launch("image/*") },
@@ -129,10 +129,9 @@ fun AddEditGameScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 fontScaleFactor = fontScaleFactor,
-                icon = Icons.Default.Search
+                icon = Icons.Default.MoreVert
             )
 
-            // Title field
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -143,10 +142,10 @@ fun AddEditGameScreen(
                     .semantics { contentDescription = "Titre du jeu" },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (14.sp * fontScaleFactor)
-                )
+                ),
+                singleLine = true
             )
 
-            // Platform field
             OutlinedTextField(
                 value = platform,
                 onValueChange = { platform = it },
@@ -157,23 +156,24 @@ fun AddEditGameScreen(
                     .semantics { contentDescription = "Plateforme" },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (14.sp * fontScaleFactor)
-                )
+                ),
+                singleLine = true
             )
 
-            // Release date
             OutlinedTextField(
                 value = releaseDate,
                 onValueChange = { releaseDate = it },
                 label = { Text("Date de sortie (YYYY-MM-DD)") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp)
+                    .semantics { contentDescription = "Date de sortie" },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (14.sp * fontScaleFactor)
-                )
+                ),
+                singleLine = true
             )
 
-            // Description
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -181,28 +181,29 @@ fun AddEditGameScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp)
+                    .semantics { contentDescription = "Description" },
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (14.sp * fontScaleFactor)
                 ),
                 maxLines = 4
             )
 
-            // Hours played
             OutlinedTextField(
                 value = hoursPlayed.toString(),
                 onValueChange = { hoursPlayed = it.toIntOrNull() ?: 0 },
                 label = { Text("Heures jouées") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp)
+                    .semantics { contentDescription = "Heures jouées" },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (14.sp * fontScaleFactor)
-                )
+                ),
+                singleLine = true
             )
 
-            // Rating slider
             AccessibleSlider(
                 value = rating.toFloat(),
                 onValueChange = { rating = it.toInt() },
@@ -213,7 +214,6 @@ fun AddEditGameScreen(
                 fontScaleFactor = fontScaleFactor
             )
 
-            // Status selector
             Text(
                 text = "Statut: ${status.getLabel()}",
                 fontSize = (14.sp * fontScaleFactor),
@@ -232,13 +232,12 @@ fun AddEditGameScreen(
                 )
             }
 
-            // Save button
             AccessibleButton(
-                text = "✅ Enregistrer",
+                text = "Enregistrer",
                 onClick = {
                     if (title.isNotBlank() && platform.isNotBlank()) {
                         val newGame = Game(
-                            id = game?.id ?: 0,
+                            id = currentGame?.id ?: 0,
                             title = title,
                             platform = platform,
                             status = status,
@@ -248,7 +247,8 @@ fun AddEditGameScreen(
                             releaseDate = releaseDate,
                             hoursPlayed = hoursPlayed
                         )
-                        onSave(newGame)
+                        viewModel.saveGame(newGame)
+                        onSave()
                     }
                 },
                 modifier = Modifier
@@ -256,8 +256,11 @@ fun AddEditGameScreen(
                     .padding(top = 24.dp),
                 fontScaleFactor = fontScaleFactor
             )
+
+            Text(
+                text = "",
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
         }
     }
 }
-
-

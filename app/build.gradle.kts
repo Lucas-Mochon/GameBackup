@@ -73,6 +73,11 @@ dependencies {
     // Image Loading
     implementation(libs.coil.compose)
 
+    // Network - Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

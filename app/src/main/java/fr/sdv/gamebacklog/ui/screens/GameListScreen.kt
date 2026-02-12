@@ -12,28 +12,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,58 +43,46 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.sdv.gamebacklog.data.model.Game
 import fr.sdv.gamebacklog.data.model.GameStatus
-import fr.sdv.gamebacklog.ui.components.AccessibleButton
-import fr.sdv.gamebacklog.ui.components.AccessibleCard
+import fr.sdv.gamebacklog.ui.components.GameImage
 import fr.sdv.gamebacklog.viewmodel.GameListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameListScreen(
     viewModel: GameListViewModel,
+    status: GameStatus? = null,
     onGameClick: (Game) -> Unit,
     onAddGameClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onStatisticsClick: () -> Unit,
+    onFreeGamesClick: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val displayedGames by viewModel.displayedGames.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val hasMorePages by viewModel.hasMorePages.collectAsState()
+    val lazyListState = rememberLazyListState()
 
-    val todoGames by viewModel.todoGames.collectAsState()
-    val inProgressGames by viewModel.inProgressGames.collectAsState()
-    val doneGames by viewModel.doneGames.collectAsState()
+    // Détection du scroll pour charger plus
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisibleIndex = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleIndex >= displayedGames.size - 3
+        }
+    }
 
-    val tabs = listOf(
-        GameStatus.TO_DO to todoGames,
-        GameStatus.IN_PROGRESS to inProgressGames,
-        GameStatus.DONE to doneGames
-    )
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore && hasMorePages && !isLoading) {
+            viewModel.loadNextPage()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Game Backlog",
+                        text = "À faire",
                         fontSize = (18.sp * fontScaleFactor)
                     )
-                },
-                actions = {
-                    IconButton(
-                        onClick = onStatisticsClick,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Voir les statistiques"
-                        }
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null)
-                    }
-                    IconButton(
-                        onClick = onSettingsClick,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Ouvrir les paramètres d'accessibilité"
-                        }
-                    ) {
-                        Icon(Icons.Default.Settings, contentDescription = null)
-                    }
                 }
             )
         },
@@ -111,49 +97,102 @@ fun GameListScreen(
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Tabs for filtering
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                tabs.forEachIndexed { index, (status, _) ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Filtrer par ${status.getLabel()}"
-                        }
-                    ) {
-                        Text(
-                            text = status.getLabel(),
-                            modifier = Modifier.padding(16.dp),
-                            fontSize = (14.sp * fontScaleFactor)
+            if (displayedGames.isEmpty() && !isLoading) {
+                Text(
+                    text = "Aucun jeu",
+                    modifier = Modifier.align(Alignment.Center),
+                    fontSize = (16.sp * fontScaleFactor)
+                )
+            } else {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(displayedGames, key = { it.id }) { game ->
+                        GameListItem(
+                            game = game,
+                            onGameClick = { onGameClick(game) },
+                            onDeleteClick = { viewModel.deleteGame(game) },
+                            fontScaleFactor = fontScaleFactor
                         )
+                    }
+
+                    if (isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+}
 
-            // Games List
-            val games = tabs[selectedTabIndex].second
-            if (games.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GameStatusScreen(
+    viewModel: GameListViewModel,
+    status: GameStatus,
+    onGameClick: (Game) -> Unit,
+    onAddGameClick: () -> Unit,
+    fontScaleFactor: Float = 1f
+) {
+    val games by viewModel.getGamesByStatus(status).collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
                     Text(
-                        text = "Aucun jeu dans cette catégorie",
-                        fontSize = (16.sp * fontScaleFactor)
+                        text = status.getLabel(),
+                        fontSize = (18.sp * fontScaleFactor)
                     )
                 }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddGameClick,
+                modifier = Modifier.semantics {
+                    contentDescription = "Ajouter un nouveau jeu"
+                }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            if (games.isEmpty()) {
+                Text(
+                    text = "Aucun jeu",
+                    modifier = Modifier.align(Alignment.Center),
+                    fontSize = (16.sp * fontScaleFactor)
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(games, key = { it.id }) { game ->
                         GameListItem(
@@ -188,8 +227,7 @@ fun GameListItem(
             .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Game image thumbnail
-        fr.sdv.gamebacklog.ui.components.GameImage(
+        GameImage(
             imagePath = game.imageUri,
             gameTitle = game.title,
             modifier = Modifier
@@ -198,7 +236,6 @@ fun GameListItem(
             contentScale = ContentScale.Crop
         )
 
-        // Game info
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -222,21 +259,12 @@ fun GameListItem(
                     fontSize = (12.sp * fontScaleFactor)
                 )
                 Text(
-                    text = "⏱️ ${game.hoursPlayed}h",
+                    text = "⏱ ${game.hoursPlayed}h",
                     fontSize = (12.sp * fontScaleFactor)
-                )
-            }
-            if (game.description.isNotEmpty()) {
-                Text(
-                    text = game.description.take(40) + if (game.description.length > 40) "..." else "",
-                    fontSize = (11.sp * fontScaleFactor),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
                 )
             }
         }
 
-        // Delete button
         IconButton(
             onClick = onDeleteClick,
             modifier = Modifier.semantics {
@@ -251,4 +279,3 @@ fun GameListItem(
         }
     }
 }
-
