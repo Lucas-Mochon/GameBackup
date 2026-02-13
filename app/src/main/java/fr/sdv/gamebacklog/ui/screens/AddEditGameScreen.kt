@@ -240,8 +240,7 @@ fun AddEditGameScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
-                    fontScaleFactor = fontScaleFactor,
-                    isSelected = status == gameStatus
+                    fontScaleFactor = fontScaleFactor
                 )
             }
 
