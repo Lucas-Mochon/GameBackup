@@ -1,5 +1,6 @@
 package fr.sdv.gamebacklog.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class AddEditGameViewModel(private val repository: GameRepository) : ViewModel() {
 
@@ -30,19 +32,30 @@ class AddEditGameViewModel(private val repository: GameRepository) : ViewModel()
 
     fun saveGame(game: Game) = viewModelScope.launch {
         _isLoading.value = true
+        Log.d("AddEditGameViewModel", "saveGame called with game: ${game.title}, id: ${game.id}, status: ${game.status}")
         try {
             if (game.id == 0) {
-                repository.addGame(game)
+                val uniqueId = Math.abs(UUID.randomUUID().hashCode())
+                val gameWithId = game.copy(id = uniqueId)
+                Log.d("AddEditGameViewModel", "Inserting new game with generated id: $uniqueId")
+                repository.addGame(gameWithId)
+                Log.d("AddEditGameViewModel", "Game inserted successfully")
             } else {
+                Log.d("AddEditGameViewModel", "Updating existing game with id: ${game.id}")
                 repository.updateGame(game)
+                Log.d("AddEditGameViewModel", "Game updated successfully")
             }
             _savingSuccess.value = true
+            Log.d("AddEditGameViewModel", "savingSuccess set to true")
+        } catch (e: Exception) {
+            Log.e("AddEditGameViewModel", "Error saving game", e)
         } finally {
             _isLoading.value = false
         }
     }
 
     fun resetState() {
+        Log.d("AddEditGameViewModel", "resetState called")
         _currentGame.value = null
         _savingSuccess.value = false
     }

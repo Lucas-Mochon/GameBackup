@@ -1,5 +1,6 @@
 package fr.sdv.gamebacklog.navigation
 
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -55,6 +56,11 @@ fun GameBacklogNavigation(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    // Instance partagée du GameListViewModel
+    val sharedGameListViewModel: GameListViewModel = viewModel(
+        factory = GameListViewModelFactory(repository)
+    )
 
     val bottomNavItems = listOf(
         BottomNavItem(GameBacklogScreen.FreeGamesList.route, "Découvrir", Icons.Default.Home),
@@ -126,11 +132,8 @@ fun GameBacklogNavigation(
             }
 
             composable(GameBacklogScreen.GameList.route) {
-                val viewModel: GameListViewModel = viewModel(
-                    factory = GameListViewModelFactory(repository)
-                )
                 GameListScreen(
-                    viewModel = viewModel,
+                    viewModel = sharedGameListViewModel,
                     status = null,
                     onGameClick = { game ->
                         navController.navigate("add_edit_game/${game.id}")
@@ -148,11 +151,8 @@ fun GameBacklogNavigation(
             }
 
             composable(GameBacklogScreen.InProgress.route) {
-                val viewModel: GameListViewModel = viewModel(
-                    factory = GameListViewModelFactory(repository)
-                )
                 GameStatusScreen(
-                    viewModel = viewModel,
+                    viewModel = sharedGameListViewModel,
                     status = GameStatus.IN_PROGRESS,
                     onGameClick = { game ->
                         navController.navigate("add_edit_game/${game.id}")
@@ -165,11 +165,8 @@ fun GameBacklogNavigation(
             }
 
             composable(GameBacklogScreen.Done.route) {
-                val viewModel: GameListViewModel = viewModel(
-                    factory = GameListViewModelFactory(repository)
-                )
                 GameStatusScreen(
-                    viewModel = viewModel,
+                    viewModel = sharedGameListViewModel,
                     status = GameStatus.DONE,
                     onGameClick = { game ->
                         navController.navigate("add_edit_game/${game.id}")
@@ -205,17 +202,26 @@ fun GameBacklogNavigation(
                     factory = AddEditGameViewModelFactory(repository)
                 )
 
-                if (gameId != null) {
-                    viewModel.loadGame(gameId)
+                // Charger le jeu chaque fois que l'ID change
+                androidx.compose.runtime.LaunchedEffect(gameId) {
+                    if (gameId != null && gameId != 0) {
+                        viewModel.loadGame(gameId)
+                    }
+//                    } else {
+//                        viewModel.resetState()
+//                    }
                 }
 
                 AddEditGameScreen(
                     viewModel = viewModel,
                     onSave = {
-                        navController.navigateUp()
+                        Log.d("Navigation", "Current back stack:")
+                        Log.d("Navigation", "Calling popBackStack")
+                        navController.popBackStack()
+                        Log.d("Navigation", "After popBackStack:")
                     },
                     onNavigateBack = {
-                        navController.navigateUp()
+                        navController.popBackStack()
                     },
                     fontScaleFactor = fontScaleFactor
                 )
