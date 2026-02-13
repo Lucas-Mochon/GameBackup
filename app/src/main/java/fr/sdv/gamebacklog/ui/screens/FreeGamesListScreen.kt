@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -201,13 +204,35 @@ fun FreeGameCard(
         )
 
         Column(modifier = Modifier.padding(8.dp)) {
-            Text(
-                text = game.title,
-                fontSize = (14.sp * fontScaleFactor),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row() {
+                Text(
+                    text = game.title,
+                    fontSize = (14.sp * fontScaleFactor),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.weight(1f))
+//                if (game.status != null {
+//                    Text(
+//                        text = "Favori",
+//                        fontSize = (12.sp * fontScaleFactor),
+//                        color = MaterialTheme.colorScheme.primary,
+//                        modifier = Modifier.semantics {
+//                            contentDescription = "Jeu favori"
+//                        }
+//                    )
+//                } else {
+//                    Text(
+//                        text = "Non favori",
+//                        fontSize = (12.sp * fontScaleFactor),
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        modifier = Modifier.semantics {
+//                            contentDescription = "Jeu non favori"
+//                        }
+//                    )
+//                }
+            }
 
             Text(
                 text = "${game.platform} • ${game.genre}",

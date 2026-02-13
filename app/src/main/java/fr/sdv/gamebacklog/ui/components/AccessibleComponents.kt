@@ -40,7 +40,8 @@ fun AccessibleButton(
     enabled: Boolean = true,
     contentDescription: String = text,
     fontScaleFactor: Float = 1f,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    isSelected: Boolean = false
 ) {
     Button(
         onClick = onClick,
@@ -49,7 +50,11 @@ fun AccessibleButton(
             .semantics { this.contentDescription = contentDescription },
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
@@ -65,7 +70,12 @@ fun AccessibleButton(
         Text(
             text = text,
             fontSize = (14.sp * fontScaleFactor),
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }
