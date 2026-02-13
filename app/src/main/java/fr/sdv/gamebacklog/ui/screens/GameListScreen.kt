@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.sdv.gamebacklog.data.model.Game
@@ -50,10 +51,9 @@ import fr.sdv.gamebacklog.viewmodel.GameListViewModel
 @Composable
 fun GameListScreen(
     viewModel: GameListViewModel,
-    status: GameStatus? = null,
+//    status: GameStatus? = null,
     onGameClick: (Game) -> Unit,
-    onAddGameClick: () -> Unit,
-    onFreeGamesClick: () -> Unit,
+//    onFreeGamesClick: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
     val displayedGames by viewModel.displayedToDoGames.collectAsState()
@@ -86,16 +86,16 @@ fun GameListScreen(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddGameClick,
-                modifier = Modifier.semantics {
-                    contentDescription = "Ajouter un nouveau jeu"
-                }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-            }
-        }
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = onAddGameClick,
+//                modifier = Modifier.semantics {
+//                    contentDescription = "Ajouter un nouveau jeu"
+//                }
+//            ) {
+//                Icon(Icons.Default.Add, contentDescription = null)
+//            }
+//        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -104,10 +104,12 @@ fun GameListScreen(
         ) {
             if (displayedGames.isEmpty() && !isLoading) {
                 Text(
-                    text = "Aucun jeu",
+                    text = "Aucun jeu \nVous pouvez en ajouter depuis la page d'accueil",
                     modifier = Modifier.align(Alignment.Center),
+                    textAlign = TextAlign.Center,
                     fontSize = (16.sp * fontScaleFactor)
                 )
+
             } else {
                 LazyColumn(
                     state = lazyListState,

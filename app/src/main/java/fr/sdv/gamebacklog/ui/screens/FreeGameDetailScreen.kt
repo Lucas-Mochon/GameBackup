@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,7 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -66,6 +72,7 @@ fun FreeGameDetailScreen(
     // 🔹 STATES UI (comme avant)
     var selectedStatus by remember { mutableStateOf(GameStatus.TO_DO) }
     var rating by remember { mutableStateOf(0) }
+    var hoursPlayed by remember { mutableIntStateOf( 0) }
     var isAddingGame by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
 
@@ -114,7 +121,8 @@ fun FreeGameDetailScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         AsyncImage(
                             model = gameDetail!!.thumbnail,
@@ -146,7 +154,7 @@ fun FreeGameDetailScreen(
                         )
 
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             GameStatus.values().forEach { status ->
@@ -154,10 +162,26 @@ fun FreeGameDetailScreen(
                                     text = status.getLabel(),
                                     onClick = { selectedStatus = status },
                                     modifier = Modifier.fillMaxWidth(),
-                                    fontScaleFactor = fontScaleFactor
+                                    fontScaleFactor = fontScaleFactor,
+                                    isSelected = selectedStatus == status
                                 )
                             }
                         }
+
+                        OutlinedTextField(
+                            value = hoursPlayed.toString(),
+                            onValueChange = { hoursPlayed = it.toIntOrNull() ?: 0 },
+                            label = { Text("Heures jouées") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                                .semantics { contentDescription = "Heures jouées" },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = (14.sp * fontScaleFactor)
+                            ),
+                            singleLine = true
+                        )
 
                         AccessibleSlider(
                             value = rating.toFloat(),
@@ -192,7 +216,8 @@ fun FreeGameDetailScreen(
                                             personalRating = rating,
                                             description = gameDetail!!.description,
                                             releaseDate = gameDetail!!.releaseDate,
-                                            imageUri = localImagePath ?: ""
+                                            imageUri = localImagePath ?: "",
+                                            hoursPlayed = hoursPlayed
                                         )
 
                                         repository.addGame(newGame)

@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,10 +16,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,11 +52,14 @@ import fr.sdv.gamebacklog.data.remote.FreeGameResponse
 import fr.sdv.gamebacklog.viewmodel.FreeGamesListViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreeGamesListScreen(
     onGameClick: (FreeGameResponse) -> Unit,
-    fontScaleFactor: Float = 1f
-) {
+    fontScaleFactor: Float = 1f,
+    onAddGameClick: () -> Unit,
+
+    ) {
     val viewModel: FreeGamesListViewModel = viewModel()
 
     val games by viewModel.games.collectAsState()
@@ -108,10 +123,35 @@ fun FreeGamesListScreen(
         }
 
         else -> {
-            Column(
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Liste des jeux",
+                                fontSize = (18.sp * fontScaleFactor)
+                            )
+                        }
+                    )
+                },
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = onAddGameClick,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Ajouter un nouveau jeu"
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                    }
+                }
+            ) { innerPadding ->
+
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp)
+                    .padding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                state = listState
             ) {
                 OutlinedTextField(
                     value = searchQuery,
@@ -184,6 +224,7 @@ fun FreeGamesListScreen(
                     }
                 }
             }
+            }
         }
     }
 }
@@ -215,13 +256,35 @@ fun FreeGameCard(
         )
 
         Column(modifier = Modifier.padding(8.dp)) {
-            Text(
-                text = game.title,
-                fontSize = (14.sp * fontScaleFactor),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row() {
+                Text(
+                    text = game.title,
+                    fontSize = (14.sp * fontScaleFactor),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.weight(1f))
+//                if (game.status != null {
+//                    Text(
+//                        text = "Favori",
+//                        fontSize = (12.sp * fontScaleFactor),
+//                        color = MaterialTheme.colorScheme.primary,
+//                        modifier = Modifier.semantics {
+//                            contentDescription = "Jeu favori"
+//                        }
+//                    )
+//                } else {
+//                    Text(
+//                        text = "Non favori",
+//                        fontSize = (12.sp * fontScaleFactor),
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        modifier = Modifier.semantics {
+//                            contentDescription = "Jeu non favori"
+//                        }
+//                    )
+//                }
+            }
 
             Text(
                 text = "${game.platform} • ${game.genre}",
