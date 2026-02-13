@@ -13,9 +13,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,11 +44,14 @@ import fr.sdv.gamebacklog.data.remote.FreeGameResponse
 import fr.sdv.gamebacklog.viewmodel.FreeGamesListViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreeGamesListScreen(
     onGameClick: (FreeGameResponse) -> Unit,
-    fontScaleFactor: Float = 1f
-) {
+    fontScaleFactor: Float = 1f,
+    onAddGameClick: () -> Unit,
+
+    ) {
     val viewModel: FreeGamesListViewModel = viewModel()
 
     val games by viewModel.games.collectAsState()
@@ -89,10 +101,33 @@ fun FreeGamesListScreen(
         }
 
         else -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "Liste des jeux",
+                                fontSize = (18.sp * fontScaleFactor)
+                            )
+                        }
+                    )
+                },
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = onAddGameClick,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Ajouter un nouveau jeu"
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                    }
+                }
+            ) { innerPadding ->
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp),
+                    .padding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 state = listState
             ) {
@@ -133,6 +168,7 @@ fun FreeGamesListScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
