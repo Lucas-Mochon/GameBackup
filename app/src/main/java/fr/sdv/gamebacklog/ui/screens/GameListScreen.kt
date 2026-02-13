@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,7 +56,7 @@ fun GameListScreen(
 //    onFreeGamesClick: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
-    val displayedGames by viewModel.displayedGames.collectAsState()
+    val displayedGames by viewModel.displayedToDoGames.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val hasMorePages by viewModel.hasMorePages.collectAsState()
     val lazyListState = rememberLazyListState()
@@ -118,7 +118,10 @@ fun GameListScreen(
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(displayedGames, key = { it.id }) { game ->
+                    itemsIndexed(
+                        displayedGames,
+                        key = { index, game -> "${game.id}-$index" }
+                    ) { _, game ->
                         GameListItem(
                             game = game,
                             onGameClick = { onGameClick(game) },
@@ -154,7 +157,12 @@ fun GameStatusScreen(
     onAddGameClick: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
-    val games by viewModel.getGamesByStatus(status).collectAsState()
+    // Utiliser le bon StateFlow selon le statut
+    val games by when (status) {
+        GameStatus.IN_PROGRESS -> viewModel.inProgressGames.collectAsState()
+        GameStatus.DONE -> viewModel.doneGames.collectAsState()
+        else -> viewModel.displayedToDoGames.collectAsState()
+    }
 
     Scaffold(
         topBar = {
@@ -196,7 +204,10 @@ fun GameStatusScreen(
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(games, key = { it.id }) { game ->
+                    itemsIndexed(
+                        games,
+                        key = { _, game -> game.id }  //
+                    ) { _, game ->
                         GameListItem(
                             game = game,
                             onGameClick = { onGameClick(game) },
@@ -209,6 +220,74 @@ fun GameStatusScreen(
         }
     }
 }
+
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun GameStatusScreen(
+//    viewModel: GameListViewModel,
+//    status: GameStatus,
+//    onGameClick: (Game) -> Unit,
+//    onAddGameClick: () -> Unit,
+//    fontScaleFactor: Float = 1f
+//) {
+//    val games by viewModel.getGamesByStatus(status).collectAsState()
+//
+//    Scaffold(
+//        topBar = {
+//            TopAppBar(
+//                title = {
+//                    Text(
+//                        text = status.getLabel(),
+//                        fontSize = (18.sp * fontScaleFactor)
+//                    )
+//                }
+//            )
+//        },
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = onAddGameClick,
+//                modifier = Modifier.semantics {
+//                    contentDescription = "Ajouter un nouveau jeu"
+//                }
+//            ) {
+//                Icon(Icons.Default.Add, contentDescription = null)
+//            }
+//        }
+//    ) { innerPadding ->
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(innerPadding)
+//        ) {
+//            if (games.isEmpty()) {
+//                Text(
+//                    text = "Aucun jeu",
+//                    modifier = Modifier.align(Alignment.Center),
+//                    fontSize = (16.sp * fontScaleFactor)
+//                )
+//            } else {
+//                LazyColumn(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(8.dp),
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    itemsIndexed(
+//                        games,
+//                        key = { index, game -> "${game.id}-$index" }
+//                    ) { _, game ->
+//                        GameListItem(
+//                            game = game,
+//                            onGameClick = { onGameClick(game) },
+//                            onDeleteClick = { viewModel.deleteGame(game) },
+//                            fontScaleFactor = fontScaleFactor
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
 
 @Composable
 fun GameListItem(

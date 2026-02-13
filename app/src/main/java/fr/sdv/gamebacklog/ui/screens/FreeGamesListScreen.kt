@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -30,6 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,13 +67,27 @@ fun FreeGamesListScreen(
     val error by viewModel.error.collectAsState()
     val hasNextPage by viewModel.hasNextPage.collectAsState()
 
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val normalizedQuery = searchQuery.trim().lowercase()
+    val filteredGames = if (normalizedQuery.isBlank()) {
+        games
+    } else {
+        games.filter { game ->
+            game.title.lowercase().contains(normalizedQuery) ||
+                game.platform.lowercase().contains(normalizedQuery) ||
+                game.genre.lowercase().contains(normalizedQuery) ||
+                game.developer.lowercase().contains(normalizedQuery)
+        }
+    }
+
     val listState = rememberLazyListState()
 
-    LaunchedEffect(listState) {
+    LaunchedEffect(listState, normalizedQuery) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .distinctUntilChanged()
             .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null &&
+                if (normalizedQuery.isBlank() &&
+                    lastVisibleIndex != null &&
                     lastVisibleIndex >= games.size - 3 &&
                     hasNextPage &&
                     !isLoading) {
@@ -134,40 +153,73 @@ fun FreeGamesListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 state = listState
             ) {
-                items(games, key = { it.id }) { game ->
-                    FreeGameCard(
-                        game = game,
-                        onClick = { onGameClick(game) },
-                        fontScaleFactor = fontScaleFactor
-                    )
-                }
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Rechercher un jeu") },
+                    singleLine = true
+                )
 
-                if (isLoading) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                if (filteredGames.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Aucun jeu ne correspond a votre recherche",
+                            fontSize = (14.sp * fontScaleFactor)
+                        )
                     }
-                }
-
-                if (!hasNextPage && games.isNotEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Fin de la liste",
-                                fontSize = (12.sp * fontScaleFactor),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        state = listState
+                    ) {
+                        itemsIndexed(
+                            filteredGames,
+                            key = { _, game -> "${game.id}-${game.title}" }
+                        ) { _, game ->
+                            FreeGameCard(
+                                game = game,
+                                onClick = { onGameClick(game) },
+                                fontScaleFactor = fontScaleFactor
                             )
+                        }
+
+                        if (isLoading) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        if (!hasNextPage && games.isNotEmpty() && normalizedQuery.isBlank()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Fin de la liste",
+                                        fontSize = (12.sp * fontScaleFactor),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
                 }
