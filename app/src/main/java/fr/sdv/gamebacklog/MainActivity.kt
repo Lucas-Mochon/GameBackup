@@ -23,13 +23,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Initialize database and repository
             val database = GameBacklogDatabase.getDatabase(this@MainActivity)
             val repository = GameRepository(database.gameDao())
             val accessibilityManager = AccessibilityPreferencesManager(this@MainActivity)
             val scope = rememberCoroutineScope()
 
-            // Accessibility preferences state
             val contrastMode by accessibilityManager.contrastMode.collectAsState(
                 initial = AccessibilityPreferences.ContrastMode.NORMAL
             )
@@ -38,7 +36,6 @@ class MainActivity : ComponentActivity() {
                 initial = AccessibilityPreferences.ThemeMode.SYSTEM
             )
 
-            // Local state for theme changes (to trigger recomposition)
             var localContrastMode by remember { mutableStateOf(contrastMode) }
             var localThemeMode by remember { mutableStateOf(themeMode) }
 

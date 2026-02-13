@@ -155,7 +155,7 @@ fun FreeGamesListScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     label = { Text("Rechercher un jeu") },
                     singleLine = true
                 )

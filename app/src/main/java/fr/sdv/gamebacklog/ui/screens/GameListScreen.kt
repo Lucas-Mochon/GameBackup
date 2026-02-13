@@ -87,16 +87,6 @@ fun GameListScreen(
                 }
             )
         },
-//        floatingActionButton = {
-//            FloatingActionButton(
-//                onClick = onAddGameClick,
-//                modifier = Modifier.semantics {
-//                    contentDescription = "Ajouter un nouveau jeu"
-//                }
-//            ) {
-//                Icon(Icons.Default.Add, contentDescription = null)
-//            }
-//        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -175,16 +165,6 @@ fun GameStatusScreen(
                 }
             )
         },
-//        floatingActionButton = {
-//            FloatingActionButton(
-//                onClick = onAddGameClick,
-//                modifier = Modifier.semantics {
-//                    contentDescription = "Ajouter un nouveau jeu"
-//                }
-//            ) {
-//                Icon(Icons.Default.Add, contentDescription = null)
-//            }
-//        }
     ) { innerPadding ->
         Box(
             modifier = Modifier
