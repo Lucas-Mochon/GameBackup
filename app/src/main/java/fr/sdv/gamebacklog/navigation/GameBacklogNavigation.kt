@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -66,9 +65,9 @@ fun GameBacklogNavigation(
     val bottomNavItems = listOf(
         BottomNavItem(GameBacklogScreen.FreeGamesList.route, "Découvrir", Icons.Default.Home),
         BottomNavItem(GameBacklogScreen.GameList.route, "À faire", Icons.Default.Favorite),
-        BottomNavItem(GameBacklogScreen.InProgress.route, "En cours", Icons.Default.PlayArrow),
+        BottomNavItem(GameBacklogScreen.InProgress.route, "En cours", Icons.Default.CheckCircle),
         BottomNavItem(GameBacklogScreen.Done.route, "Terminé", Icons.Default.CheckCircle),
-        BottomNavItem(GameBacklogScreen.Settings.route, "Paramètres", Icons.Default.Settings)
+        BottomNavItem(GameBacklogScreen.Settings.route, "⚙Paramètres", Icons.Default.Settings)
     )
 
     Scaffold(
@@ -107,10 +106,7 @@ fun GameBacklogNavigation(
                             GameBacklogScreen.FreeGameDetail.createRoute(freeGame.id)
                         )
                     },
-                    fontScaleFactor = fontScaleFactor,
-                    onAddGameClick = {
-                        navController.navigate("add_edit_game/null")
-                    },
+                    fontScaleFactor = fontScaleFactor
                 )
             }
 
@@ -137,16 +133,19 @@ fun GameBacklogNavigation(
 
             composable(GameBacklogScreen.GameList.route) {
                 GameListScreen(
-                    viewModel = viewModel,
-//                    status = null,
+                    viewModel = sharedGameListViewModel,
+                    status = null,
                     onGameClick = { game ->
                         navController.navigate("add_edit_game/${game.id}")
                     },
-//                    onFreeGamesClick = {
-//                        navController.navigate(GameBacklogScreen.FreeGamesList.route) {
-//                            popUpTo(GameBacklogScreen.GameList.route) { inclusive = true }
-//                        }
-//                    },
+                    onAddGameClick = {
+                        navController.navigate("add_edit_game/null")
+                    },
+                    onFreeGamesClick = {
+                        navController.navigate(GameBacklogScreen.FreeGamesList.route) {
+                            popUpTo(GameBacklogScreen.GameList.route) { inclusive = true }
+                        }
+                    },
                     fontScaleFactor = fontScaleFactor
                 )
             }
