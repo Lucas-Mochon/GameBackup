@@ -51,6 +51,7 @@ import fr.sdv.gamebacklog.data.remote.FreeGameResponse
 import fr.sdv.gamebacklog.viewmodel.FreeGamesListViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.semantics.contentDescription
+import fr.sdv.gamebacklog.data.repository.GameRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +59,7 @@ fun FreeGamesListScreen(
     onGameClick: (FreeGameResponse) -> Unit,
     fontScaleFactor: Float = 1f,
     onAddGameClick: () -> Unit,
+    gameRepository: GameRepository
 ) {
     val viewModel: FreeGamesListViewModel = viewModel()
 

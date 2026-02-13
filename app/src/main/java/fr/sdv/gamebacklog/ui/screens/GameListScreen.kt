@@ -51,10 +51,10 @@ import fr.sdv.gamebacklog.viewmodel.GameListViewModel
 @Composable
 fun GameListScreen(
     viewModel: GameListViewModel,
-//    status: GameStatus? = null,
+    status: GameStatus? = null,
     onGameClick: (Game) -> Unit,
     onAddGameClick: () -> Unit,
-//    onFreeGamesClick: () -> Unit,
+    onFreeGamesClick: () -> Unit,
     fontScaleFactor: Float = 1f
 ) {
     val displayedGames by viewModel.displayedToDoGames.collectAsState()
@@ -175,16 +175,16 @@ fun GameStatusScreen(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddGameClick,
-                modifier = Modifier.semantics {
-                    contentDescription = "Ajouter un nouveau jeu"
-                }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-            }
-        }
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = onAddGameClick,
+//                modifier = Modifier.semantics {
+//                    contentDescription = "Ajouter un nouveau jeu"
+//                }
+//            ) {
+//                Icon(Icons.Default.Add, contentDescription = null)
+//            }
+//        }
     ) { innerPadding ->
         Box(
             modifier = Modifier

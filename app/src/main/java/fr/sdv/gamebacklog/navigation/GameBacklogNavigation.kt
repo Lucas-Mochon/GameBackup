@@ -86,8 +86,8 @@ fun GameBacklogNavigation(
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
-                                restoreState = true
                                 launchSingleTop = true
+                                restoreState = false
                             }
                         }
                     )
@@ -111,6 +111,7 @@ fun GameBacklogNavigation(
                     onAddGameClick = {
                         navController.navigate("add_edit_game/null")
                     },
+                    repository
                 )
             }
 
@@ -138,18 +139,18 @@ fun GameBacklogNavigation(
             composable(GameBacklogScreen.GameList.route) {
                 GameListScreen(
                     viewModel = sharedGameListViewModel,
-//                    status = null,
+                    status = null,
                     onGameClick = { game ->
                         navController.navigate("add_edit_game/${game.id}")
                     },
                     onAddGameClick = {
                         navController.navigate("add_edit_game/null")
                     },
-//                    onFreeGamesClick = {
-//                        navController.navigate(GameBacklogScreen.FreeGamesList.route) {
-//                            popUpTo(GameBacklogScreen.GameList.route) { inclusive = true }
-//                        }
-//                    },
+                    onFreeGamesClick = {
+                        navController.navigate(GameBacklogScreen.FreeGamesList.route) {
+                            popUpTo(GameBacklogScreen.GameList.route) { inclusive = true }
+                        }
+                    },
                     fontScaleFactor = fontScaleFactor
                 )
             }
